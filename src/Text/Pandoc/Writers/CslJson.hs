@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {- |
    Module      : Text.Pandoc.Writers.CslJson
-   Copyright   : Copyright (C) 2020 John MacFarlane
+   Copyright   : Copyright (C) 2020-2021 John MacFarlane
    License     : GNU GPL, version 2 or above
 
    Maintainer  : John MacFarlane <jgm@berkeley.edu>
@@ -34,23 +34,24 @@ import Control.Monad.Identity
 import Citeproc.Locale (getLocale)
 import Citeproc.CslJson
 import Text.Pandoc.Options (WriterOptions)
-import Data.Maybe (fromMaybe, mapMaybe)
+import Data.Maybe (mapMaybe, fromMaybe)
 import Data.Aeson.Encode.Pretty         (Config (..), Indent (Spaces),
                                          NumberFormat (Generic),
                                          defConfig, encodePretty')
 
 writeCslJson :: PandocMonad m => WriterOptions -> Pandoc -> m Text
 writeCslJson _opts (Pandoc meta _) = do
-  let lang = fromMaybe (Lang "en" (Just "US")) $
-              parseLang <$> (lookupMeta "lang" meta >>= metaValueToText)
+  let lang = fromMaybe (Lang "en" Nothing (Just "US") [] [] [])
+               (lookupMeta "lang" meta >>= metaValueToText >>=
+                  either (const Nothing) Just . parseLang)
   locale <- case getLocale lang of
                Left e  -> throwError $ PandocCiteprocError e
                Right l -> return l
-  case lookupMeta "references" meta of
-    Just (MetaList rs) -> return $ (UTF8.toText $
-         toCslJson locale (mapMaybe metaValueToReference rs))
-          <> "\n"
-    _ -> throwError $ PandocAppError "No references field"
+  let rs = case lookupMeta "references" meta of
+             Just (MetaList xs) -> xs
+             _ -> []
+  return $ UTF8.toText
+           (toCslJson locale (mapMaybe metaValueToReference rs)) <> "\n"
 
 fromInlines :: [Inline] -> CslJson Text
 fromInlines = foldMap fromInline . B.fromList
@@ -77,6 +78,7 @@ fromInline (Image _ ils _) = fromInlines ils
 fromInline (Note _) = CslEmpty
 fromInline (Span (_,[cl],_) ils)
   | "csl-" `T.isPrefixOf` cl = CslDiv cl (fromInlines ils)
+  | cl == "nocase" = CslNoCase (fromInlines ils)
 fromInline (Span _ ils) = fromInlines ils
 
 toCslJson :: Locale -> [Reference Inlines] -> ByteString

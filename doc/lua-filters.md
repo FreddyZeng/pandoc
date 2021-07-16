@@ -32,7 +32,7 @@ Starting with version 2.0, pandoc makes it possible to write
 filters in Lua without any external dependencies at all. A Lua
 interpreter (version 5.3) and a Lua library for creating pandoc
 filters is built into the pandoc executable. Pandoc data types
-are marshalled to Lua directly, avoiding the overhead of writing
+are marshaled to Lua directly, avoiding the overhead of writing
 JSON to stdout and reading it from stdin.
 
 Here is an example of a Lua filter that converts strong emphasis
@@ -75,7 +75,7 @@ Python (`smallcaps.py`):
   `pandoc --lua-filter ./smallcaps.lua`   1.03s
 
 As you can see, the Lua filter avoids the substantial overhead
-associated with marshalling to and from JSON over a pipe.
+associated with marshaling to and from JSON over a pipe.
 
 # Lua filter structure
 
@@ -109,7 +109,7 @@ element filtering function. In other words, filter entries will
 be called for each corresponding element in the document,
 getting the respective element as input.
 
-The return of a filter function must one of the following:
+The return of a filter function must be one of the following:
 
 -   nil: this means that the object should remain unchanged.
 -   a pandoc object: this must be of the same type as the input
@@ -292,7 +292,7 @@ use-case would be to load additional modules, or even to alter
 default modules.
 
 The following snippet is an example of code that might be useful
-when added to `init.lua`. The snippet adds all unicode-aware
+when added to `init.lua`. The snippet adds all Unicode-aware
 functions defined in the [`text` module](#module-text) to the
 default `string` module, prefixed with the string `uc_`.
 
@@ -307,21 +307,25 @@ colon syntax (`mystring:uc_upper()`).
 
 # Debugging Lua filters
 
-It is possible to use a debugging interface to halt execution and step through a
-Lua filter line by line as it is run inside Pandoc. This is accomplished using
-the remote-debugging interface of the package
-[`mobdebug`](https://github.com/pkulchenko/MobDebug). Although mobdebug can be
-run from the terminal, it is more useful run within the donation-ware Lua editor
-and IDE, [Zerobrane](https://studio.zerobrane.com/). Zerobrane offers a REPL
-console and UI to step-through and view all variables and state.
+It is possible to use a debugging interface to halt execution and
+step through a Lua filter line by line as it is run inside Pandoc.
+This is accomplished using the remote-debugging interface of the
+package [`mobdebug`](https://github.com/pkulchenko/MobDebug).
+Although mobdebug can be run from the terminal, it is more useful
+run within the donation-ware Lua editor and IDE,
+[ZeroBrane](https://studio.zerobrane.com/). ZeroBrane offers a
+REPL console and UI to step-through and view all variables and
+state.
 
 If you already have Lua 5.3 installed, you can add
-[`mobdebug`](https://luarocks.org/modules/paulclinger/mobdebug) and its
-dependency [`luasocket`](https://luarocks.org/modules/luasocket/luasocket) using
-[`luarocks`](https://luarocks.org), which should then be available on the path.
-Zerobrane also includes both of these in its package, so if you don't want to
-install Lua seperately, you should add/modify your `LUA_PATH` and `LUA_CPATH` to
-include the correct locations; [see detailed instructions
+[`mobdebug`](https://luarocks.org/modules/paulclinger/mobdebug)
+and its dependency
+[`luasocket`](https://luarocks.org/modules/luasocket/luasocket)
+using [`luarocks`](https://luarocks.org), which should then be
+available on the path. ZeroBrane also includes both of these in
+its package, so if you don't want to install Lua separately, you
+should add/modify your `LUA_PATH` and `LUA_CPATH` to include the
+correct locations; [see detailed instructions
 here](https://studio.zerobrane.com/doc-remote-debugging).
 
 # Examples
@@ -1509,7 +1513,7 @@ with the [`pandoc.Attr`](#pandoc.attr) constructor. For
 convenience, it is usually not necessary to construct the value
 directly if it is part of an element, and it is sufficient to
 pass an HTML-like table. E.g., to create a span with identifier
-"text" and classes "a" and "b", on can write:
+"text" and classes "a" and "b", one can write:
 
     local span = pandoc.Span('text', {id = 'text', class = 'a b'})
 
@@ -1765,7 +1769,7 @@ A list is any Lua table with integer indices. Indices start at
 one, so if `alist = {'value'}` then `alist[1] == 'value'`.
 
 Lists, when part of an element, or when generated during
-marshalling, are made instances of the `pandoc.List` type for
+marshaling, are made instances of the `pandoc.List` type for
 convenience. The `pandoc.List` type is defined in the
 [*pandoc.List*](#module-pandoc.list) module. See there for
 available methods.
@@ -2250,7 +2254,7 @@ format, and functions to filter and modify a subtree.
 
 [`Emph (content)`]{#pandoc.emph}
 
-:   Creates an inline element representing emphasised text.
+:   Creates an inline element representing emphasized text.
 
     Parameters:
 
@@ -2453,7 +2457,7 @@ format, and functions to filter and modify a subtree.
 
 [`Strikeout (content)`]{#pandoc.strikeout}
 
-:   Creates text which is striked out.
+:   Creates text which is struck out.
 
     Parameters:
 
@@ -2601,7 +2605,8 @@ format, and functions to filter and modify a subtree.
         local caption = "Overview"
         local aligns = {pandoc.AlignDefault, pandoc.AlignDefault}
         local widths = {0, 0} -- let pandoc determine col widths
-        local headers = {"Language", "Typing"}
+        local headers = {{pandoc.Plain({pandoc.Str "Language"})},
+                         {pandoc.Plain({pandoc.Str "Typing"})}}
         local rows = {
           {{pandoc.Plain "Haskell"}, {pandoc.Plain "static"}},
           {{pandoc.Plain "Lua"}, {pandoc.Plain "Dynamic"}},
@@ -2738,9 +2743,21 @@ format, and functions to filter and modify a subtree.
 Runs command with arguments, passing it some input, and returns
 the output.
 
+Parameters:
+
+`command`
+:   program to run; the executable will be resolved using default
+    system methods (string).
+
+`args`
+:   list of arguments to pass to the program (list of strings).
+
+`input`
+:   data which is piped into the program via stdin (string).
+
 Returns:
 
--   Output of command.
+-   Output of command, i.e. data printed to stdout (string)
 
 Raises:
 
@@ -2900,7 +2917,7 @@ Usage:
 
 `make_sections (number_sections, base_level, blocks)`
 
-Converst list of [Blocks](#type-block) into sections.
+Converts list of [Blocks](#type-block) into sections.
 `Div`s will be created beginning at each `Header`
 and containing following content until the next `Header`
 of comparable level.  If `number_sections` is true,
@@ -3067,7 +3084,8 @@ Clear-out the media bag, deleting all items.
 
 `insert (filepath, mime_type, contents)`
 
-Adds a new entry to pandoc's media bag.
+Adds a new entry to pandoc's media bag. Replaces any existing
+mediabag entry with the same `filepath`.
 
 Parameters:
 
@@ -3075,7 +3093,7 @@ Parameters:
 :   filename and path relative to the output folder.
 
 `mime_type`:
-:   the file's MIME type
+:   the file's MIME type; use `nil` if unknown or unavailable.
 
 `contents`:
 :   the binary contents of the file.
@@ -3159,11 +3177,21 @@ Usage:
 
 ### fetch {#pandoc.mediabag.fetch}
 
-`fetch (source, base_url)`
+`fetch (source)`
 
 Fetches the given source from a URL or local file. Returns two
 values: the contents of the file and the MIME type (or an empty
 string).
+
+The function will first try to retrieve `source` from the
+mediabag; if that fails, it will try to download it or read it
+from the local file system while respecting pandoc's "resource
+path" setting.
+
+Parameters:
+
+`source`:
+:   path to a resource; either a local file path or URI
 
 Returns:
 
@@ -3173,11 +3201,11 @@ Returns:
 Usage:
 
     local diagram_url = "https://pandoc.org/diagram.jpg"
-    local mt, contents = pandoc.mediabag.fetch(diagram_url, ".")
+    local mt, contents = pandoc.mediabag.fetch(diagram_url)
 
 # Module pandoc.List
 
-The this module defines pandoc's list type. It comes with useful
+This module defines pandoc's list type. It comes with useful
 methods and convenience functions.
 
 ## Constructor
@@ -3358,6 +3386,181 @@ methods and convenience functions.
 
     `comp`:
     :   Comparison function as described above.
+
+# Module pandoc.path
+
+Module for file path manipulations.
+
+## Static Fields {#pandoc.path-fields}
+
+### separator {#pandoc.path.separator}
+
+The character that separates directories.
+
+### search_path_separator {#pandoc.path.search_path_separator}
+
+The character that is used to separate the entries in the `PATH`
+environment variable.
+
+## Functions {#pandoc.path-functions}
+
+### directory (filepath) {#pandoc.path.directory}
+
+Gets the directory name, i.e., removes the last directory
+separator and everything after from the given path.
+
+Parameters:
+
+filepath
+:   path (string)
+
+Returns:
+
+-   The filepath up to the last directory separator. (string)
+
+### filename (filepath) {#pandoc.path.filename}
+
+Get the file name.
+
+Parameters:
+
+filepath
+:   path (string)
+
+Returns:
+
+-   File name part of the input path. (string)
+
+### is_absolute (filepath) {#pandoc.path.is_absolute}
+
+Checks whether a path is absolute, i.e. not fixed to a root.
+
+Parameters:
+
+filepath
+:   path (string)
+
+Returns:
+
+-   `true` iff `filepath` is an absolute path, `false` otherwise.
+    (boolean)
+
+### is_relative (filepath) {#pandoc.path.is_relative}
+
+Checks whether a path is relative or fixed to a root.
+
+Parameters:
+
+filepath
+:   path (string)
+
+Returns:
+
+-   `true` iff `filepath` is a relative path, `false` otherwise.
+    (boolean)
+
+### join (filepaths) {#pandoc.path.join}
+
+Join path elements back together by the directory separator.
+
+Parameters:
+
+filepaths
+:   path components (list of strings)
+
+Returns:
+
+-   The joined path. (string)
+
+### make_relative (path, root[, unsafe]) {#pandoc.path.make_relative}
+
+Contract a filename, based on a relative path. Note that the
+resulting path will usually not introduce `..` paths, as the
+presence of symlinks means `../b` may not reach `a/b` if it starts
+from `a/c`. For a worked example see [this blog
+post](https://neilmitchell.blogspot.co.uk/2015/10/filepaths-are-subtle-symlinks-are-hard.html).
+
+Set `unsafe` to a truthy value to a allow `..` in paths.
+
+Parameters:
+
+path
+:   path to be made relative (string)
+
+root
+:   root path (string)
+
+unsafe
+:   whether to allow `..` in the result. (boolean)
+
+Returns:
+
+-   contracted filename (string)
+
+### normalize (filepath) {#pandoc.path.normalize}
+
+Normalizes a path.
+
+-   `//` makes sense only as part of a (Windows) network drive;
+    elsewhere, multiple slashes are reduced to a single
+    `path.separator` (platform dependent).
+-   `/` becomes `path.separator` (platform dependent)
+-   `./` -\> ''
+-   an empty path becomes `.`
+
+Parameters:
+
+filepath
+:   path (string)
+
+Returns:
+
+-   The normalized path. (string)
+
+### split (filepath) {#pandoc.path.split}
+
+Splits a path by the directory separator.
+
+Parameters:
+
+filepath
+:   path (string)
+
+Returns:
+
+-   List of all path components. (list of strings)
+
+### split_extension (filepath) {#pandoc.path.split_extension}
+
+Splits the last extension from a file path and returns the parts. The
+extension, if present, includes the leading separator; if the path has
+no extension, then the empty string is returned as the extension.
+
+Parameters:
+
+filepath
+:   path (string)
+
+Returns:
+
+-   filepath without extension (string)
+
+-   extension or empty string (string)
+
+### split_search_path (search_path) {#pandoc.path.split_search_path}
+
+Takes a string and splits it on the `search_path_separator` character.
+Blank items are ignored on Windows, and converted to `.` on Posix. On
+Windows path elements are stripped of quotes.
+
+Parameters:
+
+search_path
+:   platform-specific search path (string)
+
+Returns:
+
+-   list of directories in search path (list of strings)
 
 # Module pandoc.system
 

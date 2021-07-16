@@ -4,7 +4,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {- |
    Module      : Text.Pandoc.Filter
-   Copyright   : Copyright (C) 2006-2020 John MacFarlane
+   Copyright   : Copyright (C) 2006-2021 John MacFarlane
    License     : GNU GPL, version 2 or above
 
    Maintainer  : John MacFarlane <jgm@berkeley@edu>
@@ -47,11 +47,13 @@ instance FromYAML Filter where
  parseYAML node =
   (withMap "Filter" $ \m -> do
     ty <- m .: "type"
-    fp <- m .: "path"
+    fp <- m .:? "path"
+    let missingPath = fail $ "Expected 'path' for filter of type " ++ show ty
+    let filterWithPath constr = maybe missingPath (return . constr . T.unpack)
     case ty of
       "citeproc" -> return CiteprocFilter
-      "lua"  -> return $ LuaFilter $ T.unpack fp
-      "json" -> return $ JSONFilter $ T.unpack fp
+      "lua"  -> filterWithPath LuaFilter fp
+      "json" -> filterWithPath JSONFilter fp
       _      -> fail $ "Unknown filter type " ++ show (ty :: T.Text)) node
   <|>
   (withStr "Filter" $ \t -> do

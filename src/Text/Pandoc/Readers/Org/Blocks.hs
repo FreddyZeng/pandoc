@@ -1,9 +1,10 @@
 {-# LANGUAGE FlexibleContexts  #-}
-{-# LANGUAGE RecordWildCards   #-}
+{-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards   #-}
 {- |
    Module      : Text.Pandoc.Readers.Org.Blocks
-   Copyright   : Copyright (C) 2014-2020 Albert Krewinkel
+   Copyright   : Copyright (C) 2014-2021 Albert Krewinkel
    License     : GNU GPL, version 2 or above
 
    Maintainer  : Albert Krewinkel <tarleb+pandoc@moltkeplatz.de>
@@ -38,10 +39,12 @@ import Data.Functor (($>))
 import Data.List (foldl', intersperse)
 import Data.Maybe (fromMaybe, isJust, isNothing)
 import Data.Text (Text)
-
+import Data.List.NonEmpty (nonEmpty)
+import System.FilePath
 import qualified Data.Text as T
 import qualified Text.Pandoc.Builder as B
 import qualified Text.Pandoc.Walk as Walk
+import Text.Pandoc.Sources (ToSources(..))
 
 --
 -- parsing blocks
@@ -111,23 +114,23 @@ attrFromBlockAttributes BlockAttributes{..} =
 stringyMetaAttribute :: Monad m => OrgParser m (Text, Text)
 stringyMetaAttribute = try $ do
   metaLineStart
-  attrName <- T.toUpper <$> many1TillChar nonspaceChar (char ':')
+  attrName <- T.toLower <$> many1TillChar nonspaceChar (char ':')
   skipSpaces
   attrValue <- anyLine <|> ("" <$ newline)
   return (attrName, attrValue)
 
 -- | Parse a set of block attributes. Block attributes are given through
--- lines like @#+CAPTION: block caption@ or @#+ATTR_HTML: :width 20@.
+-- lines like @#+caption: block caption@ or @#+attr_html: :width 20@.
 -- Parsing will fail if any line contains an attribute different from
 -- those attributes known to work on blocks.
 blockAttributes :: PandocMonad m => OrgParser m BlockAttributes
 blockAttributes = try $ do
   kv <- many stringyMetaAttribute
   guard $ all (isBlockAttr . fst) kv
-  let caption = foldl' (appendValues "CAPTION") Nothing kv
-  let kvAttrs = foldl' (appendValues "ATTR_HTML") Nothing kv
-  let name    = lookup "NAME" kv
-  let label   = lookup "LABEL" kv
+  let caption = foldl' (appendValues "caption") Nothing kv
+  let kvAttrs = foldl' (appendValues "attr_html") Nothing kv
+  let name    = lookup "name" kv
+  let label   = lookup "label" kv
   caption' <- traverse (parseFromString inlines . (<> "\n")) caption
   kvAttrs' <- parseFromString keyValues . (<> "\n") $ fromMaybe mempty kvAttrs
   return BlockAttributes
@@ -139,9 +142,9 @@ blockAttributes = try $ do
  where
    isBlockAttr :: Text -> Bool
    isBlockAttr = flip elem
-                 [ "NAME", "LABEL", "CAPTION"
-                 , "ATTR_HTML", "ATTR_LATEX"
-                 , "RESULTS"
+                 [ "name", "label", "caption"
+                 , "attr_html", "attr_latex"
+                 , "results"
                  ]
 
    appendValues :: Text -> Maybe Text -> (Text, Text) -> Maybe Text
@@ -170,10 +173,10 @@ keyValues = try $
 
 
 --
--- Org Blocks (#+BEGIN_... / #+END_...)
+-- Org Blocks (#+begin_... / #+end_...)
 --
 
--- | Read an org-mode block delimited by #+BEGIN_TYPE and #+END_TYPE.
+-- | Read an org-mode block delimited by #+begin_type and #+end_type.
 orgBlock :: PandocMonad m => OrgParser m (F Blocks)
 orgBlock = try $ do
   blockAttrs <- blockAttributes
@@ -289,29 +292,27 @@ verseBlock blockType = try $ do
      return (trimInlinesF $ pure nbspIndent <> line)
 
 -- | Read a code block and the associated results block if present.  Which of
--- boths blocks is included in the output is determined using the "exports"
+-- the blocks is included in the output is determined using the "exports"
 -- argument in the block header.
 codeBlock :: PandocMonad m => BlockAttributes -> Text -> OrgParser m (F Blocks)
 codeBlock blockAttrs blockType = do
   skipSpaces
-  (classes, kv)     <- codeHeaderArgs <|> (mempty <$ ignHeaders)
-  content           <- rawBlockContent blockType
-  resultsContent    <- option mempty babelResultsBlock
-  let id'            = fromMaybe mempty $ blockAttrName blockAttrs
-  let codeBlck       = B.codeBlockWith ( id', classes, kv ) content
-  let labelledBlck   = maybe (pure codeBlck)
-                             (labelDiv codeBlck)
-                             (blockAttrCaption blockAttrs)
+  (classes, kv)  <- codeHeaderArgs <|> (mempty <$ ignHeaders)
+  content        <- rawBlockContent blockType
+  resultsContent <- option mempty babelResultsBlock
+  let identifier = fromMaybe mempty $ blockAttrName blockAttrs
+  let codeBlk    = B.codeBlockWith (identifier, classes, kv) content
+  let wrap       = maybe pure addCaption (blockAttrCaption blockAttrs)
   return $
-    (if exportsCode kv    then labelledBlck   else mempty) <>
+    (if exportsCode kv    then wrap codeBlk   else mempty) <>
     (if exportsResults kv then resultsContent else mempty)
  where
-   labelDiv :: Blocks -> F Inlines -> F Blocks
-   labelDiv blk value =
-     B.divWith nullAttr <$> (mappend <$> labelledBlock value <*> pure blk)
+   addCaption :: F Inlines -> Blocks -> F Blocks
+   addCaption caption blk = B.divWith ("", ["captioned-content"], [])
+                         <$> (mkCaptionBlock caption <> pure blk)
 
-   labelledBlock :: F Inlines -> F Blocks
-   labelledBlock = fmap (B.plain . B.spanWith ("", ["label"], []))
+   mkCaptionBlock :: F Inlines -> F Blocks
+   mkCaptionBlock = fmap (B.divWith ("", ["caption"], []) . B.plain)
 
    exportsResults :: [(Text, Text)] -> Bool
    exportsResults = maybe False (`elem` ["results", "both"]) . lookup "exports"
@@ -527,7 +528,9 @@ include = try $ do
                      _ -> nullAttr
         return $ pure . B.codeBlockWith attr <$> parseRaw
       _ -> return $ return . B.fromList . blockFilter params <$> blockList
-  insertIncludedFileF blocksParser ["."] filename
+  currentDir <- takeDirectory . sourceName <$> getPosition
+  insertIncludedFile blocksParser toSources
+                     [currentDir] filename Nothing Nothing
  where
   includeTarget :: PandocMonad m => OrgParser m FilePath
   includeTarget = do
@@ -543,8 +546,7 @@ include = try $ do
     in case (minlvl >>= safeRead :: Maybe Int) of
          Nothing -> blks
          Just lvl -> let levels = Walk.query headerLevel blks
-                         -- CAVE: partial function in else
-                         curMin = if null levels then 0 else minimum levels
+                         curMin = maybe 0 minimum $ nonEmpty levels
                      in Walk.walk (shiftHeader (curMin - lvl)) blks
 
   headerLevel :: Block -> [Int]
@@ -852,16 +854,52 @@ definitionListItem parseIndentedMarker = try $ do
    definitionMarker =
      spaceChar *> string "::" <* (spaceChar <|> lookAhead newline)
 
+-- | Checkbox for tasks.
+data Checkbox
+  = UncheckedBox
+  | CheckedBox
+  | SemicheckedBox
+
+-- | Parses a checkbox in a plain list.
+checkbox :: PandocMonad m
+         => OrgParser m Checkbox
+checkbox = do
+  guardEnabled Ext_task_lists
+  try (char '[' *> status <* char ']') <?> "checkbox"
+  where
+    status = choice
+      [ UncheckedBox   <$ char ' '
+      , CheckedBox     <$ char 'X'
+      , SemicheckedBox <$ char '-'
+      ]
+
+checkboxToInlines :: Checkbox -> Inline
+checkboxToInlines = B.Str . \case
+  UncheckedBox   -> "☐"
+  SemicheckedBox -> "☐"
+  CheckedBox     -> "☒"
+
 -- | parse raw text for one list item
 listItem :: PandocMonad m
          => OrgParser m Int
          -> OrgParser m (F Blocks)
 listItem parseIndentedMarker = try . withContext ListItemState $ do
   markerLength <- try parseIndentedMarker
+  box <- optionMaybe checkbox
   firstLine <- anyLineNewline
   blank <- option "" ("\n" <$ blankline)
   rest <- T.concat <$> many (listContinuation markerLength)
-  parseFromString blocks $ firstLine <> blank <> rest
+  contents <- parseFromString blocks $ firstLine <> blank <> rest
+  return (maybe id (prependInlines . checkboxToInlines) box <$> contents)
+
+-- | Prepend inlines to blocks, adding them to the first paragraph or
+-- creating a new Plain element if necessary.
+prependInlines :: Inline -> Blocks -> Blocks
+prependInlines inlns = B.fromList . prepend . B.toList
+  where
+    prepend (Plain is : bs) = Plain (inlns : Space : is) : bs
+    prepend (Para  is : bs) = Para  (inlns : Space : is) : bs
+    prepend bs              = Plain [inlns, Space] : bs
 
 -- continuation of a list item - indented and separated by blankline or endline.
 -- Note: nested lists are parsed as continuations.

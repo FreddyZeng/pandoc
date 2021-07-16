@@ -3,35 +3,38 @@ README.template and MANUAL.txt via the command:
 pandoc --lua-filter tools/update-readme.lua README.template -o README.md
 -->
 
-Pandoc
-======
+# Pandoc
 
 [![github
 release](https://img.shields.io/github/release/jgm/pandoc.svg?label=current+release)](https://github.com/jgm/pandoc/releases)
 [![hackage
-release](https://img.shields.io/hackage/v/pandoc.svg?label=hackage)](http://hackage.haskell.org/package/pandoc)
-[![homebrew](https://img.shields.io/homebrew/v/pandoc.svg)](http://brewformulas.org/Pandoc)
+release](https://img.shields.io/hackage/v/pandoc.svg?label=hackage)](https://hackage.haskell.org/package/pandoc)
+[![homebrew](https://img.shields.io/homebrew/v/pandoc.svg)](https://formulae.brew.sh/formula/pandoc)
 [![stackage LTS
-package](http://stackage.org/package/pandoc/badge/lts)](http://stackage.org/lts/package/pandoc)
+package](https://stackage.org/package/pandoc/badge/lts)](https://www.stackage.org/lts/package/pandoc-types)
 [![CI
 tests](https://github.com/jgm/pandoc/workflows/CI%20tests/badge.svg)](https://github.com/jgm/pandoc/actions)
 [![license](https://img.shields.io/badge/license-GPLv2+-lightgray.svg)](https://www.gnu.org/licenses/gpl.html)
 [![pandoc-discuss on google
 groups](https://img.shields.io/badge/pandoc-discuss-red.svg?style=social)](https://groups.google.com/forum/#!forum/pandoc-discuss)
 
-The universal markup converter
-------------------------------
+## The universal markup converter
 
-Pandoc is a [Haskell](http://haskell.org) library for converting from
+Pandoc is a [Haskell](https://haskell.org) library for converting from
 one markup format to another, and a command-line tool that uses this
 library. It can convert *from*
 
 <div id="input-formats">
 
+-   `bibtex` ([BibTeX](https://ctan.org/pkg/bibtex) bibliography)
+-   `biblatex` ([BibLaTeX](https://ctan.org/pkg/biblatex) bibliography)
 -   `commonmark` ([CommonMark](https://commonmark.org) Markdown)
 -   `commonmark_x` ([CommonMark](https://commonmark.org) Markdown with
     extensions)
 -   `creole` ([Creole 1.0](http://www.wikicreole.org/wiki/Creole1.0))
+-   `csljson` ([CSL
+    JSON](https://citeproc-js.readthedocs.io/en/latest/csl-json/markup.html)
+    bibliography)
 -   `csv` ([CSV](https://tools.ietf.org/html/rfc4180) table)
 -   `docbook` ([DocBook](https://docbook.org))
 -   `docx` ([Word docx](https://en.wikipedia.org/wiki/Office_Open_XML))
@@ -92,10 +95,15 @@ It can convert *to*
 -   `asciidoc` ([AsciiDoc](https://www.methods.co.nz/asciidoc/)) or
     `asciidoctor` ([AsciiDoctor](https://asciidoctor.org/))
 -   `beamer` ([LaTeX beamer](https://ctan.org/pkg/beamer) slide show)
+-   `bibtex` ([BibTeX](https://ctan.org/pkg/bibtex) bibliography)
+-   `biblatex` ([BibLaTeX](https://ctan.org/pkg/biblatex) bibliography)
 -   `commonmark` ([CommonMark](https://commonmark.org) Markdown)
 -   `commonmark_x` ([CommonMark](https://commonmark.org) Markdown with
     extensions)
 -   `context` ([ConTeXt](https://www.contextgarden.net/))
+-   `csljson` ([CSL
+    JSON](https://citeproc-js.readthedocs.io/en/latest/csl-json/markup.html)
+    bibliography)
 -   `docbook` or `docbook4` ([DocBook](https://docbook.org) 4)
 -   `docbook5` (DocBook 5)
 -   `docx` ([Word docx](https://en.wikipedia.org/wiki/Office_Open_XML))
@@ -167,7 +175,7 @@ It can convert *to*
     and JavaScript slide show)
 -   `slidy` ([Slidy](https://www.w3.org/Talks/Tools/Slidy2/) HTML and
     JavaScript slide show)
--   `dzslides` ([DZSlides](http://paulrouget.com/dzslides/) HTML5 +
+-   `dzslides` ([DZSlides](https://paulrouget.com/dzslides/) HTML5 +
     JavaScript slide show),
 -   `revealjs` ([reveal.js](https://revealjs.com/) HTML5 + JavaScript
     slide show)
@@ -209,13 +217,11 @@ While conversions from pandoc’s Markdown to all formats aspire to be
 perfect, conversions from formats more expressive than pandoc’s Markdown
 can be expected to be lossy.
 
-Installing
-----------
+## Installing
 
 Here’s [how to install pandoc](INSTALL.md).
 
-Documentation
--------------
+## Documentation
 
 Pandoc’s website contains a full [User’s
 Guide](https://pandoc.org/MANUAL.html). It is also available
@@ -224,17 +230,15 @@ contains some [examples of the use of
 pandoc](https://pandoc.org/demos.html) and a limited [online
 demo](https://pandoc.org/try).
 
-Contributing
-------------
+## Contributing
 
 Pull requests, bug reports, and feature requests are welcome. Please
 make sure to read [the contributor guidelines](CONTRIBUTING.md) before
 opening a new issue.
 
-License
--------
+## License
 
-© 2006-2020 John MacFarlane (jgm@berkeley.edu). Released under the
-[GPL](http://www.gnu.org/copyleft/gpl.html "GNU General Public License"),
+© 2006-2021 John MacFarlane (jgm@berkeley.edu). Released under the
+[GPL](https://www.gnu.org/licenses/old-licenses/gpl-2.0.html "GNU General Public License"),
 version 2 or greater. This software carries no warranty of any kind.
 (See COPYRIGHT for full copyright and warranty notices.)

@@ -135,23 +135,25 @@ metaValueToVal k v
       MetaMap  _   -> TextVal mempty
 
 metaValueToDate :: MetaValue -> Date
-metaValueToDate (MetaMap m) =
-  Date
+metaValueToDate (MetaMap m) = fromMaybe
+  (Date
    { dateParts = dateparts
    , dateCirca = circa
    , dateSeason = season
-   , dateLiteral = literal }
+   , dateLiteral = literal })
+  rawdate
  where
   dateparts = case M.lookup "date-parts" m of
                 Just (MetaList xs) ->
                   mapMaybe metaValueToDateParts xs
                 Just _ -> []
                 Nothing ->
-                  maybe [] (:[]) $ metaValueToDateParts (MetaMap m)
+                  maybeToList $ metaValueToDateParts (MetaMap m)
   circa = fromMaybe False $
             M.lookup "circa" m >>= metaValueToBool
   season = M.lookup "season" m >>= metaValueToInt
   literal = M.lookup "literal" m >>= metaValueToText
+  rawdate = M.lookup "raw" m >>= metaValueToText >>= rawDateEDTF
 metaValueToDate (MetaList xs) =
   Date{ dateParts = mapMaybe metaValueToDateParts xs
       , dateCirca = False
@@ -251,4 +253,3 @@ normalizeKey k =
     "pmid"  -> "PMID"
     "url"   -> "URL"
     x       -> x
-
